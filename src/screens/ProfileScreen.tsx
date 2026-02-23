@@ -64,31 +64,76 @@ export const ProfileScreen = () => {
     };
 
     const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.5,
-        });
+        Alert.alert(
+            'Profile Photo',
+            'Choose an option',
+            [
+                {
+                    text: '📷 Camera',
+                    onPress: async () => {
+                        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                        if (status !== 'granted') {
+                            Alert.alert('Permission needed', 'Camera permission is required');
+                            return;
+                        }
+                        const result = await ImagePicker.launchCameraAsync({
+                            allowsEditing: true,
+                            aspect: [1, 1],
+                            quality: 0.5,
+                        });
+                        if (!result.canceled && result.assets[0]) {
+                            await uploadPhoto(result.assets[0].uri);
+                        }
+                    },
+                },
+                {
+                    text: '🖼️ Gallery',
+                    onPress: async () => {
+                        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                        if (status !== 'granted') {
+                            Alert.alert('Permission needed', 'Gallery permission is required');
+                            return;
+                        }
+                        const result = await ImagePicker.launchImageLibraryAsync({
+                            mediaTypes: ['images'],
+                            allowsEditing: true,
+                            aspect: [1, 1],
+                            quality: 0.5,
+                        });
+                        if (!result.canceled && result.assets[0]) {
+                            await uploadPhoto(result.assets[0].uri);
+                        }
+                    },
+                },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
 
-        if (!result.canceled && result.assets[0]) {
-            await uploadPhoto(result.assets[0].uri);
-        }
+    // Convert URI to blob using XMLHttpRequest (works in React Native)
+    const uriToBlob = (uri: string): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.onload = () => resolve(xhr.response);
+            xhr.onerror = () => reject(new Error('Failed to convert file'));
+            xhr.responseType = 'blob';
+            xhr.open('GET', uri, true);
+            xhr.send(null);
+        });
     };
 
     const uploadPhoto = async (uri: string) => {
         if (!user) return;
         setUploading(true);
         try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
+            const blob = await uriToBlob(uri);
             const storageRef = ref(storage, `profilePhotos/${user.uid}`);
             await uploadBytes(storageRef, blob);
             const downloadUrl = await getDownloadURL(storageRef);
             await updateProfile(firebaseAuth.currentUser!, { photoURL: downloadUrl });
             Alert.alert('Success! 📸', 'Profile photo updated!');
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            Alert.alert('Upload Error', error.message || 'Could not upload photo');
         } finally {
             setUploading(false);
         }
@@ -115,8 +160,7 @@ export const ProfileScreen = () => {
         if (!user) return;
         setResumeUploading(true);
         try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
+            const blob = await uriToBlob(uri);
             const storageRef = ref(storage, `resumes/${user.uid}/${fileName}`);
             await uploadBytes(storageRef, blob);
             const downloadUrl = await getDownloadURL(storageRef);
