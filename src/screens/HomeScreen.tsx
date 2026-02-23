@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HomeStackParamList, JobType } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'JobBoard'>;
 
@@ -31,6 +32,7 @@ const getGreeting = (): { text: string; emoji: string } => {
 export const HomeScreen = () => {
     const { jobs, loading } = useJobs();
     const { user } = useAuth();
+    const { colors } = useTheme();
     const navigation = useNavigation<HomeScreenNavigationProp>();
     const [searchText, setSearchText] = useState('');
     const [selectedFilter, setSelectedFilter] = useState<'All' | JobType>('All');
@@ -63,35 +65,35 @@ export const HomeScreen = () => {
 
     if (loading) {
         return (
-            <View style={styles.center}>
-                <View style={styles.loadingCard}>
-                    <ActivityIndicator size="large" color="#4F46E5" />
-                    <Text style={styles.loadingText}>Finding the best jobs...</Text>
+            <View style={[styles.center, { backgroundColor: colors.background }]}>
+                <View style={[styles.loadingCard, { backgroundColor: colors.surface }]}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.textMuted }]}>Finding the best jobs...</Text>
                 </View>
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.headerBar}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.headerBar, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
                 {/* Personalized greeting */}
                 <View style={styles.headerTop}>
                     <View>
-                        <Text style={styles.greeting}>{greeting.text}, {firstName} {greeting.emoji}</Text>
-                        <Text style={styles.greetingBold}>Find Your Dream Job</Text>
+                        <Text style={[styles.greeting, { color: colors.textMuted }]}>{greeting.text}, {firstName} {greeting.emoji}</Text>
+                        <Text style={[styles.greetingBold, { color: colors.text }]}>Find Your Dream Job</Text>
                     </View>
-                    <View style={styles.jobCountBadge}>
-                        <Text style={styles.jobCountText}>{jobs.length}</Text>
-                        <Text style={styles.jobCountLabel}>Jobs</Text>
+                    <View style={[styles.jobCountBadge, { backgroundColor: colors.primaryLight }]}>
+                        <Text style={[styles.jobCountText, { color: colors.primary }]}>{jobs.length}</Text>
+                        <Text style={[styles.jobCountLabel, { color: colors.textMuted }]}>Jobs</Text>
                     </View>
                 </View>
 
                 {/* Search */}
-                <View style={styles.searchBar}>
+                <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
                     <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
                     <TextInput
-                        style={styles.searchInput}
+                        style={[styles.searchInput, { color: colors.text }]}
                         placeholder="Search jobs, companies..."
                         placeholderTextColor="#94A3B8"
                         value={searchText}
@@ -109,7 +111,7 @@ export const HomeScreen = () => {
             {/* Quick Stats */}
             <View style={styles.statsRow}>
                 {statsData.map((stat, idx) => (
-                    <View key={idx} style={styles.statCard}>
+                    <View key={idx} style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                         <View style={[styles.statIconBg, { backgroundColor: stat.bg }]}>
                             <Ionicons name={stat.icon} size={16} color={stat.color} />
                         </View>
@@ -120,7 +122,7 @@ export const HomeScreen = () => {
             </View>
 
             {/* Filter Chips */}
-            <View style={styles.filterSection}>
+            <View style={[styles.filterSection, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                     {FILTER_OPTIONS.map((filter) => (
                         <TouchableOpacity

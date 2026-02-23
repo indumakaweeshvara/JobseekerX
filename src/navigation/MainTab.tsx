@@ -9,33 +9,48 @@ import { MyApplicationsScreen } from '../screens/MyApplicationsScreen';
 import { SavedJobsScreen } from '../screens/SavedJobsScreen';
 import { MainTabParamList, HomeStackParamList, ProfileStackParamList } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const ProfileStackNav = createNativeStackNavigator<ProfileStackParamList>();
 
-const headerStyle = {
-    headerStyle: { backgroundColor: '#FFFFFF' },
-    headerTitleStyle: { fontWeight: '700' as const, fontSize: 18, color: '#0F172A' },
-    headerShadowVisible: false,
+const HomeNavigator = () => {
+    const { colors } = useTheme();
+    const headerStyle = {
+        headerStyle: { backgroundColor: colors.surface },
+        headerTitleStyle: { fontWeight: '700' as const, fontSize: 18, color: colors.text },
+        headerShadowVisible: false,
+    };
+
+    return (
+        <HomeStack.Navigator>
+            <HomeStack.Screen name="JobBoard" component={HomeScreen} options={{ title: 'Job Board', ...headerStyle }} />
+            <HomeStack.Screen name="JobDetails" component={JobDetailsScreen} options={{ title: 'Job Details', ...headerStyle }} />
+        </HomeStack.Navigator>
+    );
 };
 
-const HomeNavigator = () => (
-    <HomeStack.Navigator>
-        <HomeStack.Screen name="JobBoard" component={HomeScreen} options={{ title: 'Job Board', ...headerStyle }} />
-        <HomeStack.Screen name="JobDetails" component={JobDetailsScreen} options={{ title: 'Job Details', ...headerStyle }} />
-    </HomeStack.Navigator>
-);
+const ProfileNavigator = () => {
+    const { colors } = useTheme();
+    const headerStyle = {
+        headerStyle: { backgroundColor: colors.surface },
+        headerTitleStyle: { fontWeight: '700' as const, fontSize: 18, color: colors.text },
+        headerShadowVisible: false,
+    };
 
-const ProfileNavigator = () => (
-    <ProfileStackNav.Navigator>
-        <ProfileStackNav.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile', ...headerStyle }} />
-        <ProfileStackNav.Screen name="MyApplications" component={MyApplicationsScreen} options={{ title: 'My Applications', ...headerStyle }} />
-        <ProfileStackNav.Screen name="SavedJobs" component={SavedJobsScreen} options={{ title: 'Saved Jobs', ...headerStyle }} />
-    </ProfileStackNav.Navigator>
-);
+    return (
+        <ProfileStackNav.Navigator>
+            <ProfileStackNav.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile', ...headerStyle }} />
+            <ProfileStackNav.Screen name="MyApplications" component={MyApplicationsScreen} options={{ title: 'My Applications', ...headerStyle }} />
+            <ProfileStackNav.Screen name="SavedJobs" component={SavedJobsScreen} options={{ title: 'Saved Jobs', ...headerStyle }} />
+        </ProfileStackNav.Navigator>
+    );
+};
 
 export const MainTab = () => {
+    const { colors } = useTheme();
+
     return (
         <Tab.Navigator
             screenOptions={({ route }: any) => ({
@@ -54,13 +69,13 @@ export const MainTab = () => {
 
                     return <Ionicons name={iconName} size={focused ? 26 : 24} color={color} />;
                 },
-                tabBarActiveTintColor: '#4F46E5',
-                tabBarInactiveTintColor: '#94A3B8',
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textMuted,
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.tabBar,
                     borderTopWidth: 1,
-                    borderTopColor: '#F1F5F9',
+                    borderTopColor: colors.borderLight,
                     paddingTop: 6,
                     paddingBottom: 8,
                     height: 64,
@@ -84,7 +99,9 @@ export const MainTab = () => {
                 options={{
                     title: 'Post Job',
                     headerShown: true,
-                    ...headerStyle,
+                    headerStyle: { backgroundColor: colors.surface },
+                    headerTitleStyle: { fontWeight: '700' as const, fontSize: 18, color: colors.text },
+                    headerShadowVisible: false,
                     headerTitleAlign: 'center',
                 }}
             />
