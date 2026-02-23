@@ -29,6 +29,9 @@ export interface Application {
     jobTitle: string;
     company: string;
     status: ApplicationStatus;
+    coverLetter?: string;
+    applicantName?: string;
+    applicantEmail?: string;
 }
 
 export interface Bookmark {

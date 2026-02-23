@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { collection, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Bookmark } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+
+const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+    'Full-time': { bg: '#EEF2FF', text: '#4F46E5' },
+    'Part-time': { bg: '#FFF7ED', text: '#EA580C' },
+    'Remote': { bg: '#F0FDF4', text: '#16A34A' },
+    'Contract': { bg: '#FDF4FF', text: '#9333EA' },
+};
 
 export const SavedJobsScreen = () => {
     const { user } = useAuth();
@@ -42,7 +49,10 @@ export const SavedJobsScreen = () => {
     if (loading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <View style={styles.loadingCard}>
+                    <ActivityIndicator size="large" color="#F59E0B" />
+                    <Text style={styles.loadingText}>Loading saved jobs...</Text>
+                </View>
             </View>
         );
     }
@@ -50,7 +60,9 @@ export const SavedJobsScreen = () => {
     if (bookmarks.length === 0) {
         return (
             <View style={styles.centered}>
-                <Ionicons name="bookmark-outline" size={64} color="#CCC" />
+                <View style={styles.emptyIconBg}>
+                    <Ionicons name="bookmark-outline" size={48} color="#F59E0B" />
+                </View>
                 <Text style={styles.emptyTitle}>No saved jobs</Text>
                 <Text style={styles.emptyText}>Bookmark jobs you're interested in</Text>
             </View>
@@ -59,36 +71,59 @@ export const SavedJobsScreen = () => {
 
     return (
         <View style={styles.container}>
+            <View style={styles.summaryBar}>
+                <Text style={styles.summaryText}>
+                    {bookmarks.length} {bookmarks.length === 1 ? 'saved job' : 'saved jobs'}
+                </Text>
+            </View>
             <FlatList
                 data={bookmarks}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <View style={styles.cardInfo}>
-                                <Text style={styles.jobTitle}>{item.jobTitle}</Text>
-                                <Text style={styles.company}>{item.company}</Text>
+                renderItem={({ item }) => {
+                    const typeColor = TYPE_COLORS[item.type] || TYPE_COLORS['Full-time'];
+                    return (
+                        <View style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <View style={styles.cardInfo}>
+                                    <Text style={styles.jobTitle}>{item.jobTitle}</Text>
+                                    <View style={styles.companyRow}>
+                                        <Ionicons name="business-outline" size={14} color="#64748B" />
+                                        <Text style={styles.company}>{item.company}</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => handleRemove(item.id)}
+                                    style={styles.removeBtn}
+                                >
+                                    <Ionicons name="bookmark" size={22} color="#F59E0B" />
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.removeBtn}>
-                                <Ionicons name="bookmark" size={24} color="#FF9500" />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.cardDetails}>
-                            <View style={styles.detailRow}>
-                                <Ionicons name="location-outline" size={14} color="#888" />
-                                <Text style={styles.detailText}>{item.location}</Text>
+
+                            <View style={styles.cardDivider} />
+
+                            <View style={styles.cardDetails}>
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailIconBg}>
+                                        <Ionicons name="location" size={14} color="#4F46E5" />
+                                    </View>
+                                    <Text style={styles.detailText}>{item.location}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailIconBg}>
+                                        <Ionicons name="wallet" size={14} color="#16A34A" />
+                                    </View>
+                                    <Text style={[styles.detailText, { color: '#16A34A', fontWeight: '600' }]}>{item.salary}</Text>
+                                </View>
                             </View>
-                            <View style={styles.detailRow}>
-                                <Ionicons name="cash-outline" size={14} color="#888" />
-                                <Text style={styles.detailText}>{item.salary}</Text>
+
+                            <View style={[styles.typeBadge, { backgroundColor: typeColor.bg }]}>
+                                <Text style={[styles.typeText, { color: typeColor.text }]}>{item.type}</Text>
                             </View>
                         </View>
-                        <View style={styles.typeBadge}>
-                            <Text style={styles.typeText}>{item.type}</Text>
-                        </View>
-                    </View>
-                )}
+                    );
+                }}
                 contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
             />
         </View>
     );
@@ -97,38 +132,77 @@ export const SavedJobsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: '#F8FAFC',
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F5F7FA',
+        backgroundColor: '#F8FAFC',
+    },
+    loadingCard: {
+        backgroundColor: '#FFFFFF',
+        padding: 40,
+        borderRadius: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    emptyIconBg: {
+        width: 90,
+        height: 90,
+        borderRadius: 28,
+        backgroundColor: '#FFF7ED',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
     },
     emptyTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
-        color: '#999',
-        marginTop: 16,
+        fontWeight: '700',
+        color: '#334155',
     },
     emptyText: {
         fontSize: 14,
-        color: '#BBB',
+        color: '#94A3B8',
         marginTop: 6,
     },
+    summaryBar: {
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+    },
+    summaryText: {
+        fontSize: 13,
+        color: '#94A3B8',
+        fontWeight: '600',
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
+    },
     list: {
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 20,
     },
     card: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 18,
         marginBottom: 12,
-        shadowColor: '#000',
+        shadowColor: '#1E293B',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 3,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -140,42 +214,66 @@ const styles = StyleSheet.create({
     },
     jobTitle: {
         fontSize: 17,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
+        fontWeight: '700',
+        color: '#0F172A',
+        letterSpacing: -0.3,
+    },
+    companyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 4,
     },
     company: {
-        fontSize: 14,
-        color: '#007AFF',
-        marginTop: 2,
+        fontSize: 13,
+        color: '#64748B',
+        fontWeight: '500',
     },
     removeBtn: {
-        padding: 4,
+        width: 40,
+        height: 40,
+        borderRadius: 14,
+        backgroundColor: '#FFF7ED',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cardDivider: {
+        height: 1,
+        backgroundColor: '#F1F5F9',
+        marginVertical: 14,
     },
     cardDetails: {
         flexDirection: 'row',
-        gap: 16,
-        marginTop: 10,
+        gap: 20,
     },
     detailRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+    },
+    detailIconBg: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     detailText: {
         fontSize: 13,
-        color: '#888',
+        color: '#64748B',
+        fontWeight: '500',
     },
     typeBadge: {
         alignSelf: 'flex-start',
-        backgroundColor: '#E8F2FF',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        marginTop: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 10,
+        marginTop: 12,
     },
     typeText: {
-        fontSize: 12,
-        color: '#007AFF',
-        fontWeight: 'bold',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.3,
     },
 });

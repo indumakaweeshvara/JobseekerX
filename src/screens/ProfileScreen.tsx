@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Ale
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/Button';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from '../types';
 import * as ImagePicker from 'expo-image-picker';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -12,7 +12,7 @@ import { storage, auth as firebaseAuth, db } from '../config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
-type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
+type ProfileScreenNavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
 
 export const ProfileScreen = () => {
     const { user, signOut } = useAuth();
@@ -74,7 +74,7 @@ export const ProfileScreen = () => {
                 await updateProfile(firebaseAuth.currentUser, {
                     photoURL: downloadURL,
                 });
-                Alert.alert('Success', 'Profile photo updated!');
+                Alert.alert('Success! 🎉', 'Profile photo updated!');
             }
         } catch (error: any) {
             Alert.alert('Upload Failed', error.message);
@@ -85,11 +85,12 @@ export const ProfileScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            {/* Profile Header Card */}
+            <View style={styles.headerCard}>
                 <TouchableOpacity onPress={pickImage} disabled={uploading} style={styles.avatarWrapper}>
                     <View style={styles.avatar}>
                         {uploading ? (
-                            <ActivityIndicator size="large" color="#fff" />
+                            <ActivityIndicator size="large" color="#FFFFFF" />
                         ) : user?.photoURL ? (
                             <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
                         ) : (
@@ -99,44 +100,61 @@ export const ProfileScreen = () => {
                         )}
                     </View>
                     <View style={styles.editBadge}>
-                        <Ionicons name="camera" size={14} color="#fff" />
+                        <Ionicons name="camera" size={14} color="#FFFFFF" />
                     </View>
                 </TouchableOpacity>
                 <Text style={styles.name}>{user?.displayName || 'User'}</Text>
                 <Text style={styles.email}>{user?.email}</Text>
-            </View>
 
-            <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statNumber}>{appCount}</Text>
-                    <Text style={styles.statLabel}>Applications</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statNumber}>{savedCount}</Text>
-                    <Text style={styles.statLabel}>Saved Jobs</Text>
-                </View>
-            </View>
-
-            <View style={styles.menuSection}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MyApplications')}>
-                    <View style={[styles.menuIcon, { backgroundColor: '#E8F2FF' }]}>
-                        <Ionicons name="document-text" size={20} color="#007AFF" />
+                {/* Stats */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statNumber}>{appCount}</Text>
+                        <Text style={styles.statLabel}>Applied</Text>
                     </View>
-                    <Text style={styles.menuText}>My Applications</Text>
-                    <Ionicons name="chevron-forward" size={20} color="#CCC" />
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <Text style={styles.statNumber}>{savedCount}</Text>
+                        <Text style={styles.statLabel}>Saved</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Menu Section */}
+            <View style={styles.menuCard}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MyApplications')}>
+                    <View style={[styles.menuIcon, { backgroundColor: '#EEF2FF' }]}>
+                        <Ionicons name="document-text" size={20} color="#4F46E5" />
+                    </View>
+                    <View style={styles.menuInfo}>
+                        <Text style={styles.menuText}>My Applications</Text>
+                        <Text style={styles.menuSubtext}>Track your job applications</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
                 </TouchableOpacity>
+
+                <View style={styles.menuDivider} />
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('SavedJobs')}>
-                    <View style={[styles.menuIcon, { backgroundColor: '#FFF3E0' }]}>
-                        <Ionicons name="bookmark" size={20} color="#FF9500" />
+                    <View style={[styles.menuIcon, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="bookmark" size={20} color="#F59E0B" />
                     </View>
-                    <Text style={styles.menuText}>Saved Jobs</Text>
-                    <Ionicons name="chevron-forward" size={20} color="#CCC" />
+                    <View style={styles.menuInfo}>
+                        <Text style={styles.menuText}>Saved Jobs</Text>
+                        <Text style={styles.menuSubtext}>Jobs you've bookmarked</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
                 </TouchableOpacity>
             </View>
 
+            {/* Logout */}
             <View style={styles.logoutSection}>
-                <Button title="Logout" onPress={signOut} variant="danger" />
+                <Button
+                    title="Sign Out"
+                    onPress={signOut}
+                    variant="outline"
+                    icon="log-out-outline"
+                />
             </View>
         </View>
     );
@@ -145,30 +163,32 @@ export const ProfileScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
-        padding: 20,
+        backgroundColor: '#F8FAFC',
+        padding: 16,
     },
-    header: {
+    headerCard: {
         alignItems: 'center',
-        marginBottom: 20,
-        backgroundColor: '#fff',
-        padding: 24,
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        backgroundColor: '#FFFFFF',
+        padding: 28,
+        borderRadius: 24,
+        shadowColor: '#1E293B',
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowRadius: 12,
+        elevation: 4,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
     avatarWrapper: {
         position: 'relative',
-        marginBottom: 12,
+        marginBottom: 16,
     },
     avatar: {
         width: 100,
         height: 100,
-        borderRadius: 50,
-        backgroundColor: '#007AFF',
+        borderRadius: 32,
+        backgroundColor: '#4F46E5',
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'hidden',
@@ -179,92 +199,111 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         fontSize: 40,
-        color: '#fff',
-        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
     editBadge: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#007AFF',
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+        bottom: 2,
+        right: -2,
+        backgroundColor: '#4F46E5',
+        width: 32,
+        height: 32,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: '#fff',
+        borderColor: '#FFFFFF',
     },
     name: {
         fontSize: 22,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
+        fontWeight: '800',
+        color: '#0F172A',
+        letterSpacing: -0.3,
     },
     email: {
         fontSize: 14,
-        color: '#888',
+        color: '#94A3B8',
         marginTop: 4,
+        fontWeight: '500',
     },
     statsRow: {
         flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        elevation: 2,
+        marginTop: 20,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 40,
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
     },
     statNumber: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#007AFF',
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#4F46E5',
     },
     statLabel: {
-        fontSize: 13,
-        color: '#999',
-        marginTop: 4,
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 2,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    menuSection: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
+    statDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: '#E2E8F0',
+        marginHorizontal: 20,
+    },
+    menuCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#000',
+        shadowColor: '#1E293B',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
-        shadowRadius: 6,
+        shadowRadius: 8,
         elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5',
+        padding: 18,
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#F1F5F9',
+        marginHorizontal: 18,
     },
     menuIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 14,
+    },
+    menuInfo: {
+        flex: 1,
     },
     menuText: {
-        flex: 1,
         fontSize: 16,
-        color: '#333',
-        fontWeight: '500',
+        color: '#0F172A',
+        fontWeight: '600',
+    },
+    menuSubtext: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 2,
     },
     logoutSection: {
         marginTop: 'auto',
-        paddingTop: 20,
+        paddingTop: 16,
     },
 });
