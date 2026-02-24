@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, ScrollView, TextInput, RefreshControl } from 'react-native';
 import { useJobs } from '../context/JobContext';
 import { JobCard } from '../components/JobCard';
@@ -8,6 +8,7 @@ import { HomeStackParamList, JobType } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import * as Location from 'expo-location';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'JobBoard'>;
 
@@ -37,9 +38,30 @@ export const HomeScreen = () => {
     const [searchText, setSearchText] = useState('');
     const [selectedFilter, setSelectedFilter] = useState<'All' | JobType>('All');
     const [refreshing, setRefreshing] = useState(false);
+    const [userCity, setUserCity] = useState<string | null>(null);
 
     const greeting = getGreeting();
     const firstName = user?.displayName?.split(' ')[0] || 'there';
+
+    // Location API
+    useEffect(() => {
+        (async () => {
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') return;
+                const loc = await Location.getCurrentPositionAsync({});
+                const [place] = await Location.reverseGeocodeAsync({
+                    latitude: loc.coords.latitude,
+                    longitude: loc.coords.longitude,
+                });
+                if (place) {
+                    setUserCity(place.city || place.region || place.country || null);
+                }
+            } catch (e) {
+                console.log('Location:', e);
+            }
+        })();
+    }, []);
 
     const filteredJobs = jobs.filter(job => {
         const matchesSearch =
@@ -82,6 +104,12 @@ export const HomeScreen = () => {
                     <View>
                         <Text style={[styles.greeting, { color: colors.textMuted }]}>{greeting.text}, {firstName} {greeting.emoji}</Text>
                         <Text style={[styles.greetingBold, { color: colors.text }]}>Find Your Dream Job</Text>
+                        {userCity ? (
+                            <View style={styles.locationRow}>
+                                <Ionicons name="location" size={14} color={colors.primary} />
+                                <Text style={[styles.locationText, { color: colors.textMuted }]}>{userCity}</Text>
+                            </View>
+                        ) : null}
                     </View>
                     <View style={[styles.jobCountBadge, { backgroundColor: colors.primaryLight }]}>
                         <Text style={[styles.jobCountText, { color: colors.primary }]}>{jobs.length}</Text>
@@ -378,5 +406,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#94A3B8',
         marginTop: 6,
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 4,
+    },
+    locationText: {
+        fontSize: 13,
+        fontWeight: '500',
     },
 });

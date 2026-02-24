@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Application, ApplicationStatus } from '../types';
@@ -65,6 +65,27 @@ export const MyApplicationsScreen = () => {
         );
     }
 
+    const handleWithdraw = (applicationId: string, jobTitle: string) => {
+        Alert.alert(
+            'Withdraw Application',
+            `Are you sure you want to withdraw your application for "${jobTitle}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Withdraw',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteDoc(doc(db, 'applications', applicationId));
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message || 'Could not withdraw application');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.summaryBar}>
@@ -96,13 +117,22 @@ export const MyApplicationsScreen = () => {
                                 </View>
                             </View>
                             <View style={styles.cardDivider} />
-                            <View style={styles.dateRow}>
-                                <Ionicons name="calendar-outline" size={14} color="#94A3B8" />
-                                <Text style={styles.dateText}>
-                                    Applied {item.appliedAt?.toDate
-                                        ? item.appliedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                                        : 'Recently'}
-                                </Text>
+                            <View style={styles.cardFooter}>
+                                <View style={styles.dateRow}>
+                                    <Ionicons name="calendar-outline" size={14} color="#94A3B8" />
+                                    <Text style={styles.dateText}>
+                                        Applied {item.appliedAt?.toDate
+                                            ? item.appliedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                            : 'Recently'}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.withdrawBtn}
+                                    onPress={() => handleWithdraw(item.id, item.jobTitle)}
+                                >
+                                    <Ionicons name="close-circle-outline" size={16} color="#EF4444" />
+                                    <Text style={styles.withdrawText}>Withdraw</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     );
@@ -240,5 +270,24 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#94A3B8',
         fontWeight: '500',
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    withdrawBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: '#FEF2F2',
+    },
+    withdrawText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#EF4444',
     },
 });

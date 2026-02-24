@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, Switch, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, Switch, Linking, Modal, ScrollView, TextInput, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/Button';
@@ -28,11 +28,20 @@ export const ProfileScreen = () => {
     const [resumeName, setResumeName] = useState<string>('');
     const [photoUrl, setPhotoUrl] = useState<string | null>(user?.photoURL || null);
 
+    // Advanced Profile state
+    const [showEditProfile, setShowEditProfile] = useState(false);
+    const [bio, setBio] = useState('');
+    const [skills, setSkills] = useState('');
+    const [phone, setPhone] = useState('');
+    const [linkedin, setLinkedin] = useState('');
+    const [profileSaving, setProfileSaving] = useState(false);
+
     useEffect(() => {
         if (user) {
             fetchCounts();
             fetchResume();
             fetchPhoto();
+            fetchProfile();
         }
     }, [user]);
 
@@ -51,6 +60,42 @@ export const ProfileScreen = () => {
             }
         } catch (e) {
             console.log('Photo fetch error:', e);
+        }
+    };
+
+    const fetchProfile = async () => {
+        if (!user) return;
+        try {
+            const docSnap = await getDoc(doc(db, 'userProfiles', user.uid));
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setBio(data.bio || '');
+                setSkills(data.skills || '');
+                setPhone(data.phone || '');
+                setLinkedin(data.linkedin || '');
+            }
+        } catch (e) {
+            console.log('Profile fetch:', e);
+        }
+    };
+
+    const saveProfile = async () => {
+        if (!user) return;
+        setProfileSaving(true);
+        try {
+            await setDoc(doc(db, 'userProfiles', user.uid), {
+                bio: bio.trim(),
+                skills: skills.trim(),
+                phone: phone.trim(),
+                linkedin: linkedin.trim(),
+                updatedAt: new Date().toISOString(),
+            });
+            setShowEditProfile(false);
+            Alert.alert('Saved! ✅', 'Profile updated successfully!');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Could not save profile');
+        } finally {
+            setProfileSaving(false);
         }
     };
 
@@ -233,8 +278,10 @@ export const ProfileScreen = () => {
         }
     };
 
+    const skillTags = skills.split(',').map(s => s.trim()).filter(Boolean);
+
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 30 }}>
             {/* Profile Header */}
             <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
@@ -255,6 +302,31 @@ export const ProfileScreen = () => {
                 </TouchableOpacity>
                 <Text style={[styles.name, { color: colors.text }]}>{user?.displayName || 'User'}</Text>
                 <Text style={[styles.email, { color: colors.textMuted }]}>{user?.email}</Text>
+
+                {/* Bio */}
+                {bio ? (
+                    <Text style={[styles.bioText, { color: colors.textSecondary }]} numberOfLines={2}>{bio}</Text>
+                ) : null}
+
+                {/* Skills Tags */}
+                {skillTags.length > 0 ? (
+                    <View style={styles.skillsRow}>
+                        {skillTags.slice(0, 5).map((skill, i) => (
+                            <View key={i} style={[styles.skillTag, { backgroundColor: colors.primaryLight }]}>
+                                <Text style={[styles.skillTagText, { color: colors.primary }]}>{skill}</Text>
+                            </View>
+                        ))}
+                    </View>
+                ) : null}
+
+                {/* Edit Profile Button */}
+                <TouchableOpacity
+                    style={[styles.editProfileBtn, { borderColor: colors.primary }]}
+                    onPress={() => setShowEditProfile(true)}
+                >
+                    <Ionicons name="create-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.editProfileText, { color: colors.primary }]}>Edit Profile</Text>
+                </TouchableOpacity>
 
                 {/* Stats */}
                 <View style={[styles.statsRow, { borderTopColor: colors.border }]}>
@@ -377,7 +449,75 @@ export const ProfileScreen = () => {
                     icon="log-out-outline"
                 />
             </View>
-        </View>
+
+            {/* Edit Profile Modal */}
+            <Modal visible={showEditProfile} animationType="slide" transparent={true}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+                            <TouchableOpacity onPress={() => setShowEditProfile(false)}>
+                                <Ionicons name="close" size={24} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>BIO</Text>
+                            <TextInput
+                                style={[styles.fieldInput, styles.fieldMultiline, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                                value={bio}
+                                onChangeText={setBio}
+                                placeholder="Tell us about yourself..."
+                                placeholderTextColor={colors.textMuted}
+                                multiline
+                                numberOfLines={3}
+                            />
+
+                            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>SKILLS (comma separated)</Text>
+                            <TextInput
+                                style={[styles.fieldInput, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                                value={skills}
+                                onChangeText={setSkills}
+                                placeholder="React Native, TypeScript, Firebase..."
+                                placeholderTextColor={colors.textMuted}
+                            />
+
+                            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>PHONE</Text>
+                            <TextInput
+                                style={[styles.fieldInput, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                                value={phone}
+                                onChangeText={setPhone}
+                                placeholder="+94 XX XXX XXXX"
+                                placeholderTextColor={colors.textMuted}
+                                keyboardType="phone-pad"
+                            />
+
+                            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>LINKEDIN URL</Text>
+                            <TextInput
+                                style={[styles.fieldInput, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                                value={linkedin}
+                                onChangeText={setLinkedin}
+                                placeholder="https://linkedin.com/in/your-profile"
+                                placeholderTextColor={colors.textMuted}
+                                autoCapitalize="none"
+                            />
+
+                            <TouchableOpacity
+                                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+                                onPress={saveProfile}
+                                disabled={profileSaving}
+                            >
+                                {profileSaving ? (
+                                    <ActivityIndicator color="#FFF" size="small" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save Profile</Text>
+                                )}
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </ScrollView>
     );
 };
 
@@ -510,5 +650,96 @@ const styles = StyleSheet.create({
     },
     signOutSection: {
         marginTop: 20,
+    },
+    bioText: {
+        fontSize: 14,
+        fontWeight: '400',
+        marginTop: 8,
+        textAlign: 'center',
+        paddingHorizontal: 20,
+        lineHeight: 20,
+    },
+    skillsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 6,
+        marginTop: 12,
+        paddingHorizontal: 10,
+    },
+    skillTag: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    skillTagText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    editProfileBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 14,
+        borderWidth: 1.5,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    editProfileText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 40,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+    },
+    fieldLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+        marginBottom: 6,
+        marginTop: 14,
+    },
+    fieldInput: {
+        borderWidth: 1.5,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+        fontSize: 15,
+    },
+    fieldMultiline: {
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    saveBtn: {
+        marginTop: 24,
+        borderRadius: 14,
+        paddingVertical: 15,
+        alignItems: 'center',
+    },
+    saveBtnText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });

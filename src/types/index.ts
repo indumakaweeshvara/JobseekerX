@@ -2,6 +2,10 @@ export interface UserProfile {
     uid: string;
     email: string | null;
     displayName?: string | null;
+    bio?: string;
+    skills?: string;
+    phone?: string;
+    linkedin?: string;
 }
 
 export type JobType = 'Full-time' | 'Part-time' | 'Remote' | 'Contract';
