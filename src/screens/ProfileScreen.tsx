@@ -26,13 +26,33 @@ export const ProfileScreen = () => {
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
     const [resumeUploading, setResumeUploading] = useState(false);
     const [resumeName, setResumeName] = useState<string>('');
+    const [photoUrl, setPhotoUrl] = useState<string | null>(user?.photoURL || null);
 
     useEffect(() => {
         if (user) {
             fetchCounts();
             fetchResume();
+            fetchPhoto();
         }
     }, [user]);
+
+    const fetchPhoto = async () => {
+        if (!user) return;
+        // First try auth photoURL
+        if (user.photoURL) {
+            setPhotoUrl(user.photoURL);
+            return;
+        }
+        // Fallback: check Firestore
+        try {
+            const docSnap = await getDoc(doc(db, 'userPhotos', user.uid));
+            if (docSnap.exists()) {
+                setPhotoUrl(docSnap.data().photoURL);
+            }
+        } catch (e) {
+            console.log('Photo fetch error:', e);
+        }
+    };
 
     const fetchCounts = async () => {
         if (!user) return;
@@ -115,7 +135,7 @@ export const ProfileScreen = () => {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.onload = () => resolve(xhr.response);
-            xhr.onerror = () => reject(new Error('Failed to convert file'));
+            xhr.onerror = (e) => reject(new Error('Failed to convert file'));
             xhr.responseType = 'blob';
             xhr.open('GET', uri, true);
             xhr.send(null);
@@ -126,14 +146,39 @@ export const ProfileScreen = () => {
         if (!user) return;
         setUploading(true);
         try {
+            // Step 1: Convert to blob
             const blob = await uriToBlob(uri);
-            const storageRef = ref(storage, `profilePhotos/${user.uid}`);
+
+            // Step 2: Upload to Firebase Storage
+            const fileName = `profilePhotos/${user.uid}_${Date.now()}.jpg`;
+            const storageRef = ref(storage, fileName);
             await uploadBytes(storageRef, blob);
+
+            // Step 3: Get download URL
             const downloadUrl = await getDownloadURL(storageRef);
-            await updateProfile(firebaseAuth.currentUser!, { photoURL: downloadUrl });
+
+            // Step 4: Update locally immediately
+            setPhotoUrl(downloadUrl);
+
+            // Step 5: Save to Firestore (reliable backup)
+            await setDoc(doc(db, 'userPhotos', user.uid), {
+                photoURL: downloadUrl,
+                updatedAt: new Date().toISOString(),
+            });
+
+            // Step 6: Try to update Auth profile (may fail silently)
+            try {
+                await updateProfile(firebaseAuth.currentUser!, { photoURL: downloadUrl });
+                await firebaseAuth.currentUser!.reload();
+            } catch (authErr) {
+                // Auth update failed but Firestore has it
+                console.log('Auth profile update skipped:', authErr);
+            }
+
             Alert.alert('Success! 📸', 'Profile photo updated!');
         } catch (error: any) {
-            Alert.alert('Upload Error', error.message || 'Could not upload photo');
+            console.error('Upload error:', error);
+            Alert.alert('Upload Error', error.message || 'Could not upload photo. Please try again.');
         } finally {
             setUploading(false);
         }
@@ -197,8 +242,8 @@ export const ProfileScreen = () => {
                         <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
                             <ActivityIndicator color={colors.primary} />
                         </View>
-                    ) : user?.photoURL ? (
-                        <Image source={{ uri: user.photoURL }} style={styles.avatar} />
+                    ) : photoUrl ? (
+                        <Image source={{ uri: photoUrl }} style={styles.avatar} />
                     ) : (
                         <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
                             <Ionicons name="person" size={40} color={colors.primary} />
