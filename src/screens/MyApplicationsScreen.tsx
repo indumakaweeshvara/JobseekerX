@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Application, ApplicationStatus } from '../types';
@@ -23,8 +23,7 @@ export const MyApplicationsScreen = () => {
 
         const q = query(
             collection(db, 'applications'),
-            where('userId', '==', user.uid),
-            orderBy('appliedAt', 'desc')
+            where('userId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -32,6 +31,12 @@ export const MyApplicationsScreen = () => {
                 id: d.id,
                 ...d.data(),
             })) as Application[];
+            // Sort client-side (avoids needing a composite index)
+            apps.sort((a, b) => {
+                const dateA = a.appliedAt?.toDate?.() || new Date(0);
+                const dateB = b.appliedAt?.toDate?.() || new Date(0);
+                return dateB.getTime() - dateA.getTime();
+            });
             setApplications(apps);
             setLoading(false);
         }, (error) => {
