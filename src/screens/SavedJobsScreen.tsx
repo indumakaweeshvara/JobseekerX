@@ -42,7 +42,7 @@ export const SavedJobsScreen = () => {
         try {
             await deleteDoc(doc(db, 'bookmarks', bookmarkId));
         } catch (error: any) {
-            console.error('Error removing bookmark:', error);
+            console.log('Bookmark remove info:', error.message);
         }
     };
 

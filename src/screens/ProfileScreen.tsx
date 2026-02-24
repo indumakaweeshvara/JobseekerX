@@ -65,7 +65,7 @@ export const ProfileScreen = () => {
             const bookSnap = await getDocs(bookQ);
             setBookmarkCount(bookSnap.size);
         } catch (e) {
-            console.error(e);
+            console.log('Stats fetch:', e);
         }
     };
 
@@ -79,7 +79,7 @@ export const ProfileScreen = () => {
                 setResumeName(data.fileName || 'Resume');
             }
         } catch (e) {
-            console.error(e);
+            console.log('Resume fetch:', e);
         }
     };
 
@@ -177,7 +177,7 @@ export const ProfileScreen = () => {
 
             Alert.alert('Success! 📸', 'Profile photo updated!');
         } catch (error: any) {
-            console.error('Upload error:', error);
+            console.log('Upload error:', error);
             Alert.alert('Upload Error', error.message || 'Could not upload photo. Please try again.');
         } finally {
             setUploading(false);

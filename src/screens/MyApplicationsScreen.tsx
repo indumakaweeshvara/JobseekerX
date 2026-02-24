@@ -34,6 +34,9 @@ export const MyApplicationsScreen = () => {
             })) as Application[];
             setApplications(apps);
             setLoading(false);
+        }, (error) => {
+            console.log('Applications fetch info:', error.message);
+            setLoading(false);
         });
 
         return unsubscribe;

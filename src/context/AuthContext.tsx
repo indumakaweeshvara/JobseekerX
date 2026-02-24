@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await firebaseSignOut(auth);
         } catch (error) {
-            console.error(error);
+            console.log('Sign out error:', error);
         }
     };
 

@@ -52,7 +52,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setJobs(jobsData);
             setLoading(false);
         }, (error) => {
-            console.error("Error fetching jobs: ", error);
+            console.log("Jobs fetch info:", error.message);
             setLoading(false);
         });
 
@@ -68,7 +68,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 createdAt: serverTimestamp(),
             });
         } catch (error) {
-            console.error("Error adding job: ", error);
+            console.log("Error adding job:", error);
             throw error;
         }
     };
@@ -78,7 +78,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const jobRef = doc(db, 'jobs', id);
             await updateDoc(jobRef, data);
         } catch (error) {
-            console.error("Error updating job: ", error);
+            console.log("Error updating job:", error);
             throw error;
         }
     };
@@ -87,7 +87,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
             await deleteDoc(doc(db, 'jobs', id));
         } catch (error) {
-            console.error("Error deleting job: ", error);
+            console.log("Error deleting job:", error);
             throw error;
         }
     };
